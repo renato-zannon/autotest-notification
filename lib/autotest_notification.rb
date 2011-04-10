@@ -2,9 +2,9 @@ require "autotest"
 $:.unshift(File.dirname(__FILE__))
 
 module AutotestNotification
-  
+
   VERSION = '2.4.0'
-  
+
   class Config
 
     class << self
@@ -26,14 +26,15 @@ module AutotestNotification
 
   end
 
-  Autotest.add_hook :ran_command do |at|
+  Autotest.add_hook :ran_command do |autotest|
     lines = autotest.results.map { |s| s.gsub(/(\e.*?m|\n)/, '') }   # remove escape sequences
-    lines.reject! { |line| !line.match(/\d+\s+(example|test|scenario|step)s?/) }   # isolate result numbers
-    
-    lines.each do |line|
+    puts autotest.results
+    result_lines = lines.select { |line| line.match(/^\d+\s+(example|test|scenario|step)s?$/) }   # isolate result numbers
+
+    result_lines.each do |line|
       %w{ test assertion error example pending failure }.each { |x| instance_variable_set "@#{x}s", line[/(\d+) #{x}/, 1].to_i }
     end
-    
+
     if @tests
       code = 31 if @failures > 0 || @errors > 0
       msg  = unit_test_message(@tests, @assertions, @failures, @errors)
