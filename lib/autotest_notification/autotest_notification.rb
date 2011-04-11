@@ -6,30 +6,31 @@ module AutotestNotification
 
   Autotest.add_hook :ran_command do |autotest|
     lines = autotest.results.map { |s| s.gsub(/(\e.*?m|\n)/, '') }   # remove escape sequences
-    result_lines = lines.select { |line| line.match(/^\d+\s+(example|test|scenario|step)s?$/) }   # isolate result numbers
+    result_line = lines.select { |line| line.match(/\d+\s+(example|test|scenario|step)s?/) }.last   # isolate result numbers
 
-    result_lines.each do |line|
-      %w{ test assertion error example pending failure }.each { |x| instance_variable_set "@#{x}s", line[/(\d+) #{x}/, 1].to_i }
+    report = Hash.new(0)
+    %w{ tests assertions errors examples pendings failures }.map(&:to_sym).each do |x|
+      report[x] = result_line[/(\d+) #{x}/, 1].to_i
     end
 
-    if @tests
-      code = 31 if @failures > 0 || @errors > 0
-      msg  = unit_test_message(@tests, @assertions, @failures, @errors)
-    elsif @examples
-      code = (@failures > 0) ? 31 : (@pendings > 0) ? 33 : 32
-      msg  = rspec_message(@examples, @failures, @pendings)
+    if report[:tests] > 0
+      code = 31 if report[:failures] > 0 || report[:errors] > 0
+      msg  = unit_test_message(report[:tests], report[:assertions], report[:failures], report[:errors])
+    elsif report[:examples]
+      code = (report[:failures] > 0) ? 31 : (report[:pendings] > 0) ? 33 : 32
+      msg  = rspec_message(report[:examples], report[:failures], report[:pendings])
     else
       code = 31
       msg  = "1 exception occurred"
-      @failures = 1
+      report[:failures] = 1
     end
 
-    if @failures > 0 || @errors > 0
-      notify "FAIL", msg, Config.fail_image, @tests + @examples, @failures + @errors, 2
-    elsif PENDING && @pendings > 0
-      notify "Pending", msg, Config.pending_image, @tests + @examples, @failures + @errors, 1
+    if report[:failures] > 0 || report[:errors] > 0
+      notify "FAIL", msg, Config.fail_image, report[:tests] + report[:examples], report[:failures] + report[:errors], 2
+    elsif PENDING && report[:pendings] > 0
+      notify "Pending", msg, Config.pending_image, report[:tests] + report[:examples], report[:failures] + report[:errors], 1
     else
-      notify "Pass", msg, Config.success_image, @tests + @examples, 0, -2
+      notify "Pass", msg, Config.success_image, report[:tests] + report[:examples], 0, -2
     end
 
     puts "\e[#{code}m#{'=' * 80}\e[0m\n\n"
