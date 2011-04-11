@@ -9,8 +9,8 @@ module AutotestNotification
     result_line = lines.select { |line| line.match(/\d+\s+(example|test|scenario|step)s?/) }.last   # isolate result numbers
 
     report = Hash.new(0)
-    %w{ tests assertions errors examples pendings failures }.map(&:to_sym).each do |x|
-      report[x] = result_line[/(\d+) #{x}/, 1].to_i
+    %w{ test assertion error example pending failure }.each do |x|
+      report[(x+'s').to_sym] = result_line[/(\d+) #{x}s?/, 1].to_i
     end
 
     if report[:tests] > 0
