@@ -13,7 +13,7 @@ module AutotestNotification
       end
     end
 
-    self.images_directory = "#{File.dirname(__FILE__)}/../images/"
+    self.images_directory = "#{File.dirname(__FILE__)}/../../images/"
     self.expiration_in_seconds = 3
   end
 end
